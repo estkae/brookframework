@@ -124,6 +124,7 @@ type
   cuint64_t = UInt64;
   csize_t = NativeUInt;
   cssize_t = NativeInt;
+  cdouble = Double;
   ctime_t = NativeInt;
   Pcvoid = Pointer;
   PPcvoid = PPointer;
@@ -135,6 +136,10 @@ type
   sg_realloc_func = function(ptr: Pcvoid; size: csize_t): Pcvoid; cdecl;
 
   sg_free_func = procedure(ptr: Pcvoid); cdecl;
+
+  sg_pow_func = function(const x: cdouble; const y: cdouble): cdouble; cdecl;
+
+  sg_fmod_func = function(const x: cdouble; const y: cdouble): cdouble; cdecl;
 
   sg_err_cb = procedure(cls: Pcvoid; const err: Pcchar); cdecl;
 
@@ -166,6 +171,13 @@ var
   sg_realloc: function(ptr: Pcvoid; size: csize_t): Pcvoid; cdecl;
 
   sg_free: procedure(ptr: Pcvoid); cdecl;
+
+  sg_math_set: function(pow_func: sg_pow_func;
+    fmod_func: sg_fmod_func): cint; cdecl;
+
+  sg_pow: function(const x: cdouble; const y: cdouble): cdouble; cdecl;
+
+  sg_fmod: function(const x: cdouble; const y: cdouble): cdouble; cdecl;
 
   sg_strerror: function(errnum: cint; errmsg: Pcchar;
     errlen: csize_t): Pcchar; cdecl;
@@ -622,6 +634,72 @@ var
     user_data: Pcvoid): cint; cdecl;
 
 type
+  Psg_expr = ^sg_expr;
+  sg_expr = record
+  end;
+
+type
+  sg_expr_err_type = cenum;
+const
+  SG_EXPR_ERR_NONE = 0;
+  SG_EXPR_ERR_UNKNOWN = 1;
+  SG_EXPR_ERR_UNEXPECTED_NUMBER = 2;
+  SG_EXPR_ERR_UNEXPECTED_WORD = 3;
+  SG_EXPR_ERR_UNEXPECTED_PARENS = 4;
+  SG_EXPR_ERR_MISSING_OPERAND = 5;
+  SG_EXPR_ERR_UNKNOWN_OPERATOR = 6;
+  SG_EXPR_ERR_INVALID_FUNC_NAME = 7;
+  SG_EXPR_ERR_BAD_CALL = 8;
+  SG_EXPR_ERR_BAD_PARENS = 9;
+  SG_EXPR_ERR_TOO_FEW_FUNC_ARGS = 10;
+  SG_EXPR_ERR_FIRST_ARG_IS_NOT_VAR = 11;
+  SG_EXPR_ERR_BAD_VARIABLE_NAME = 12;
+  SG_EXPR_ERR_BAD_ASSIGNMENT = 13;
+
+type
+  Psg_expr_argument = ^sg_expr_argument;
+  sg_expr_argument = record
+  end;
+
+type
+  sg_expr_func = function(cls: Pcvoid; args: Psg_expr_argument;
+    const identifier: Pcchar): cdouble; cdecl;
+
+type
+  Psg_expr_extension = ^sg_expr_extension;
+  sg_expr_extension = packed record
+    func: sg_expr_func;
+    identifier: Pcchar;
+    cls: Pcvoid;
+  end;
+
+var
+  sg_expr_new: function: Psg_expr; cdecl;
+
+  sg_expr_free: procedure(expr: Psg_expr); cdecl;
+
+  sg_expr_compile: function(expr: Psg_expr; const str: Pcchar; len: csize_t;
+    extensions: Psg_expr_extension): cint; cdecl;
+
+  sg_expr_eval: function(expr: Psg_expr): cdouble; cdecl;
+
+  sg_expr_var: function(expr: Psg_expr; const name: Pcchar;
+    len: csize_t): cdouble; cdecl;
+
+  sg_expr_set_var: function(expr: Psg_expr; const name: Pcchar; len: csize_t;
+    const val: cdouble): cint; cdecl;
+
+  sg_expr_arg: function(args: Psg_expr_argument; index: cint): cdouble; cdecl;
+
+  sg_expr_near: function(expr: Psg_expr): cint; cdecl;
+
+  sg_expr_err: function(expr: Psg_expr): sg_expr_err_type; cdecl;
+
+  sg_expr_strerror: function(expr: Psg_expr): Pcchar; cdecl;
+
+  sg_expr_calc: function(const str: Pcchar; len: csize_t): cdouble; cdecl;
+
+type
 
   { ESgLibNotLoaded }
 
@@ -881,6 +959,9 @@ begin //FI:C101
     sg_alloc := GetProcAddress(GHandle, 'sg_alloc');
     sg_realloc := GetProcAddress(GHandle, 'sg_realloc');
     sg_free := GetProcAddress(GHandle, 'sg_free');
+    sg_math_set := GetProcAddress(GHandle, 'sg_math_set');
+    sg_pow := GetProcAddress(GHandle, 'sg_pow');
+    sg_fmod := GetProcAddress(GHandle, 'sg_fmod');
     sg_strerror := GetProcAddress(GHandle, 'sg_strerror');
     sg_is_post := GetProcAddress(GHandle, 'sg_is_post');
     sg_extract_entrypoint := GetProcAddress(GHandle, 'sg_extract_entrypoint');
@@ -1024,6 +1105,18 @@ begin //FI:C101
     sg_router_dispatch2 := GetProcAddress(GHandle, 'sg_router_dispatch2');
     sg_router_dispatch := GetProcAddress(GHandle, 'sg_router_dispatch');
 
+    sg_expr_new := GetProcAddress(GHandle, 'sg_expr_new');
+    sg_expr_free := GetProcAddress(GHandle, 'sg_expr_free');
+    sg_expr_compile := GetProcAddress(GHandle, 'sg_expr_compile');
+    sg_expr_eval := GetProcAddress(GHandle, 'sg_expr_eval');
+    sg_expr_var := GetProcAddress(GHandle, 'sg_expr_var');
+    sg_expr_set_var := GetProcAddress(GHandle, 'sg_expr_set_var');
+    sg_expr_arg := GetProcAddress(GHandle, 'sg_expr_arg');;
+    sg_expr_near := GetProcAddress(GHandle, 'sg_expr_near');
+    sg_expr_err := GetProcAddress(GHandle, 'sg_expr_err');
+    sg_expr_strerror := GetProcAddress(GHandle, 'sg_expr_strerror');
+    sg_expr_calc := GetProcAddress(GHandle, 'sg_expr_calc');
+
     Result := GHandle;
   finally
     GCS.Release;
@@ -1049,6 +1142,9 @@ begin //FI:C101
     sg_alloc := nil;
     sg_realloc := nil;
     sg_free := nil;
+    sg_math_set := nil;
+    sg_pow := nil;
+    sg_fmod := nil;
     sg_strerror := nil;
     sg_is_post := nil;
     sg_extract_entrypoint := nil;
@@ -1190,6 +1286,18 @@ begin //FI:C101
     sg_router_free := nil;
     sg_router_dispatch2 := nil;
     sg_router_dispatch := nil;
+
+    sg_expr_new := nil;
+    sg_expr_free := nil;
+    sg_expr_compile := nil;
+    sg_expr_eval := nil;
+    sg_expr_var := nil;
+    sg_expr_set_var := nil;
+    sg_expr_arg := nil;
+    sg_expr_near := nil;
+    sg_expr_err := nil;
+    sg_expr_strerror := nil;
+    sg_expr_calc := nil;
 
     Result := NilHandle;
   finally
