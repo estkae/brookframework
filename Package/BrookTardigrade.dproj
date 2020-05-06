@@ -103,26 +103,27 @@
         </DelphiCompile>
         <DCCReference Include="rtl.dcp"/>
         <DCCReference Include="designide.dcp"/>
-        <DCCReference Include="..\Source\libsagui.pas"/>
-        <DCCReference Include="..\Source\Platform.pas"/>
-        <DCCReference Include="..\Source\Marshalling.pas"/>
-        <DCCReference Include="..\Source\BrookLibraryLoader.pas"/>
-        <DCCReference Include="..\Source\BrookUtility.pas"/>
-        <DCCReference Include="..\Source\BrookHandledClasses.pas"/>
-        <DCCReference Include="..\Source\BrookString.pas"/>
-        <DCCReference Include="..\Source\BrookStringMap.pas"/>
         <DCCReference Include="..\Source\BrookExtra.pas"/>
-        <DCCReference Include="..\Source\BrookReader.pas"/>
-        <DCCReference Include="..\Source\BrookMediaTypes.pas"/>
-        <DCCReference Include="..\Source\BrookURLEntryPoints.pas"/>
-        <DCCReference Include="..\Source\BrookURLRouter.pas"/>
+        <DCCReference Include="..\Source\BrookHandledClasses.pas"/>
         <DCCReference Include="..\Source\BrookHTTPAuthentication.pas"/>
         <DCCReference Include="..\Source\BrookHTTPCookies.pas"/>
-        <DCCReference Include="..\Source\BrookHTTPUploads.pas"/>
         <DCCReference Include="..\Source\BrookHTTPRequest.pas"/>
         <DCCReference Include="..\Source\BrookHTTPResponse.pas"/>
         <DCCReference Include="..\Source\BrookHTTPServer.pas"/>
+        <DCCReference Include="..\Source\BrookHTTPUploads.pas"/>
         <DCCReference Include="BrookIDEIntegration.pas"/>
+        <DCCReference Include="..\Source\BrookLibraryLoader.pas"/>
+        <DCCReference Include="..\Source\BrookMathExpression.pas"/>
+        <DCCReference Include="..\Source\BrookMediaTypes.pas"/>
+        <DCCReference Include="..\Source\BrookReader.pas"/>
+        <DCCReference Include="..\Source\BrookString.pas"/>
+        <DCCReference Include="..\Source\BrookStringMap.pas"/>
+        <DCCReference Include="..\Source\BrookURLEntryPoints.pas"/>
+        <DCCReference Include="..\Source\BrookURLRouter.pas"/>
+        <DCCReference Include="..\Source\BrookUtility.pas"/>
+        <DCCReference Include="..\Source\libsagui.pas"/>
+        <DCCReference Include="..\Source\Marshalling.pas"/>
+        <DCCReference Include="..\Source\Platform.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

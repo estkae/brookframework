@@ -668,7 +668,7 @@ type
 
 type
   Psg_expr_extension = ^sg_expr_extension;
-  sg_expr_extension = packed record
+  sg_expr_extension = record
     func: sg_expr_func;
     identifier: Pcchar;
     cls: Pcvoid;
