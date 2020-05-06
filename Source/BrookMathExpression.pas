@@ -39,6 +39,7 @@ uses
 
 resourcestring
   SBrookInactiveMathExpression = 'Inactive math expression.';
+  SBrookExpressionAlreadyCompiled = 'Math expression already compiled.';
 
 type
   (* experimental *)
@@ -59,6 +60,9 @@ type
     const AIdentifier: string): Double of object;
 
   (* experimental *)
+  EBrookMathExpression = class(Exception);
+
+  (* experimental *)
   TBrookMathExpression = class(TBrookHandledComponent)
   private
     FExtensions: TStringList;
@@ -69,10 +73,11 @@ type
     FHandle: Psg_expr;
     FActive: Boolean;
     FStreamedActive: Boolean;
+    FCompiled: Boolean;
     function IsActiveStored: Boolean;
     procedure SetActive(AValue: Boolean);
-    procedure InternalLibUnloadEvent(ASender: TObject);
     procedure SetExtensions(AValue: TStringList);
+    procedure InternalLibUnloadEvent(ASender: TObject);
   protected
     function CreateExtensions: TStringList; virtual;
     class function DoExprFunc(Acls: Pcvoid; Aargs: Psg_expr_argument;
@@ -90,6 +95,7 @@ type
     procedure Open;
     procedure Close;
     procedure Compile(const AExpression: string); virtual;
+    procedure Clear; virtual;
     function Evaluate: Double; virtual;
     function GetVariable(const AName: string): Double; virtual;
     procedure SetVariable(const AName: string; const AValue: Double); virtual;
@@ -97,6 +103,7 @@ type
       write SetVariable; default;
   published
     property Active: Boolean read FActive write SetActive stored IsActiveStored;
+    property Compiled: Boolean read FCompiled;
     property Extensions: TStringList read FExtensions write SetExtensions;
     property OnExtension: TBrookExpressionExtensionEvent read FOnExtension
       write FOnExtension;
@@ -233,6 +240,7 @@ begin
   sg_expr_free(FHandle);
   FHandle := nil;
   FActive := False;
+  FCompiled := False;
   if Assigned(FOnDeactivate) then
     FOnDeactivate(Self);
 end;
@@ -290,6 +298,8 @@ var
   M: TMarshaller;
   I: Integer;
 begin
+  if FCompiled then
+    raise EBrookMathExpression.Create(SBrookExpressionAlreadyCompiled);
   CheckActive;
   SgLib.Check;
   SetLength(FExtensionsHandle, Succ(FExtensions.Count));
@@ -302,7 +312,17 @@ begin
   end;
   FExtensionsHandle[FExtensions.Count] := Default(sg_expr_extension);
   SgLib.CheckLastError(sg_expr_compile(FHandle, M.ToCString(AExpression),
-    Length(AExpression), Psg_expr_extension(FExtensionsHandle)));
+    Length(AExpression), @FExtensionsHandle[0]));
+  FCompiled := True;
+end;
+
+procedure TBrookMathExpression.Clear;
+begin
+  CheckActive;
+  SgLib.Check;
+  SgLib.CheckLastError(sg_expr_clear(FHandle));
+  FExtensionsHandle := nil;
+  FCompiled := False;
 end;
 
 function TBrookMathExpression.Evaluate: Double;

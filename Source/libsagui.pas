@@ -682,6 +682,8 @@ var
   sg_expr_compile: function(expr: Psg_expr; const str: Pcchar; len: csize_t;
     extensions: Psg_expr_extension): cint; cdecl;
 
+  sg_expr_clear: function(expr: Psg_expr): cint; cdecl;
+
   sg_expr_eval: function(expr: Psg_expr): cdouble; cdecl;
 
   sg_expr_var: function(expr: Psg_expr; const name: Pcchar;
@@ -1119,6 +1121,7 @@ begin //FI:C101
     sg_expr_new := GetProcAddress(GHandle, 'sg_expr_new');
     sg_expr_free := GetProcAddress(GHandle, 'sg_expr_free');
     sg_expr_compile := GetProcAddress(GHandle, 'sg_expr_compile');
+    sg_expr_clear := GetProcAddress(GHandle, 'sg_expr_clear');
     sg_expr_eval := GetProcAddress(GHandle, 'sg_expr_eval');
     sg_expr_var := GetProcAddress(GHandle, 'sg_expr_var');
     sg_expr_set_var := GetProcAddress(GHandle, 'sg_expr_set_var');
@@ -1303,6 +1306,7 @@ begin //FI:C101
     sg_expr_new := nil;
     sg_expr_free := nil;
     sg_expr_compile := nil;
+    sg_expr_clear := nil;
     sg_expr_eval := nil;
     sg_expr_var := nil;
     sg_expr_set_var := nil;
