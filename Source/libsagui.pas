@@ -45,6 +45,7 @@ uses
   RTLConsts,
   SysUtils,
   StrUtils,
+  Math,
   Classes,
   Contnrs,
 {$IFDEF MSWINDOWS}
@@ -72,7 +73,7 @@ type
 const
   SG_VERSION_MAJOR = 3;
 
-  SG_VERSION_MINOR = 0;
+  SG_VERSION_MINOR = 1;
 
   SG_VERSION_PATCH = 0;
 
@@ -744,6 +745,16 @@ begin
     (TMethod(AN1).Data = TMethod(AN2).Data);
 end;
 
+function MathPower(const X, Y: cdouble): cdouble; cdecl;
+begin
+  Result := Math.Power(X, Y);
+end;
+
+function MathMod(const X, Y: cdouble): cdouble; cdecl;
+begin
+  Result := X - Y * Int(X / Y);
+end;
+
 function sg_httpres_send(res: Psg_httpres; const val: Pcchar;
   const content_type: Pcchar; status: cuint): cint;
 var
@@ -1116,6 +1127,8 @@ begin //FI:C101
     sg_expr_err := GetProcAddress(GHandle, 'sg_expr_err');
     sg_expr_strerror := GetProcAddress(GHandle, 'sg_expr_strerror');
     sg_expr_calc := GetProcAddress(GHandle, 'sg_expr_calc');
+
+    sg_math_set(MathPower, MathMod);
 
     Result := GHandle;
   finally

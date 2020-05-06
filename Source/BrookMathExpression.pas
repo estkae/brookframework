@@ -30,120 +30,296 @@ unit BrookMathExpression;
 interface
 
 uses
+  SysUtils,
+  Classes,
+  Math,
   Marshalling,
   libsagui,
   BrookHandledClasses;
 
+resourcestring
+  SBrookInactiveMathExpression = 'Inactive math expression.';
+
 type
   (* experimental *)
-  TBrookExpressionExtension = class(TBrookHandledCollectionItem)
-  end;
-
-  (* experimental *)
-  TBrookExpressionExtensionClass = class of TBrookExpressionExtension;
-
-  (* experimental *)
-  TBrookExpressionExtensions = class(TBrookHandledOwnedCollection)
-  end;
-
-  (* experimental *)
-  TBrookExpression = class(TBrookHandledPersistent)
+  TBrookExpressionArguments = class(TBrookHandledPersistent)
   private
-    FExtensions: TBrookExpressionExtensions;
-    FHandle: Psg_expr;
-    procedure SetExtensions(AValue: TBrookExpressionExtensions);
+    FHandle: Psg_expr_argument;
+    function GetArgument(AIndex: Integer): Double;
   protected
     function GetHandle: Pointer; override;
-    function CreateExtensions: TBrookExpressionExtensions; virtual;
   public
-    constructor Create; virtual;
+    constructor Create(AHandle: Psg_expr_argument); virtual;
+    property Items[AIndex: Integer]: Double read GetArgument; default;
+  end;
+
+  (* experimental *)
+  TBrookExpressionExtensionEvent = function(ASender: TObject;
+    AArgs: TBrookExpressionArguments;
+    const AIdentifier: string): Double of object;
+
+  (* experimental *)
+  TBrookMathExpression = class(TBrookHandledComponent)
+  private
+    FExtensions: TStringList;
+    FExtensionsHandle: array of sg_expr_extension;
+    FOnExtension: TBrookExpressionExtensionEvent;
+    FOnActivate: TNotifyEvent;
+    FOnDeactivate: TNotifyEvent;
+    FHandle: Psg_expr;
+    FActive: Boolean;
+    FStreamedActive: Boolean;
+    function IsActiveStored: Boolean;
+    procedure SetActive(AValue: Boolean);
+    procedure InternalLibUnloadEvent(ASender: TObject);
+    procedure SetExtensions(AValue: TStringList);
+  protected
+    function CreateExtensions: TStringList; virtual;
+    class function DoExprFunc(Acls: Pcvoid; Aargs: Psg_expr_argument;
+      const Aidentifier: Pcchar): cdouble; cdecl; static;
+    procedure Loaded; override;
+    function GetHandle: Pointer; override;
+    function DoExtension(AArgs: TBrookExpressionArguments;
+      const AIdentifier: string): Double; virtual;
+    procedure DoOpen; virtual;
+    procedure DoClose; virtual;
+    procedure CheckActive; inline;
+  public
+    constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    class function GetExtensionClass: TBrookExpressionExtensionClass; virtual;
+    procedure Open;
+    procedure Close;
     procedure Compile(const AExpression: string); virtual;
     function Evaluate: Double; virtual;
     function GetVariable(const AName: string): Double; virtual;
     procedure SetVariable(const AName: string; const AValue: Double); virtual;
     property Variables[const AName: string]: Double read GetVariable
       write SetVariable; default;
-    property Extensions: TBrookExpressionExtensions read FExtensions
-      write SetExtensions;
-  end;
-
-  (* experimental *)
-  TBrookMathExpression = class(TBrookHandledComponent)
+  published
+    property Active: Boolean read FActive write SetActive stored IsActiveStored;
+    property Extensions: TStringList read FExtensions write SetExtensions;
+    property OnExtension: TBrookExpressionExtensionEvent read FOnExtension
+      write FOnExtension;
+    property OnActivate: TNotifyEvent read FOnActivate write FOnActivate;
+    property OnDeactivate: TNotifyEvent read FOnDeactivate write FOnDeactivate;
   end;
 
 implementation
 
-{ TBrookExpression }
+{ TBrookExpressionArguments }
 
-constructor TBrookExpression.Create;
+constructor TBrookExpressionArguments.Create(AHandle: Psg_expr_argument);
 begin
   inherited Create;
-  SgLib.Check;
-  FHandle := sg_expr_new;
+  FHandle := AHandle;
 end;
 
-destructor TBrookExpression.Destroy;
-begin
-  SgLib.Check;
-  sg_expr_free(FHandle);
-  inherited Destroy;
-end;
-
-function TBrookExpression.CreateExtensions: TBrookExpressionExtensions;
-begin
-  Result := TBrookExpressionExtensions.Create(Self, GetExtensionClass);
-end;
-
-class function TBrookExpression.GetExtensionClass: TBrookExpressionExtensionClass;
-begin
-  Result := TBrookExpressionExtension;
-end;
-
-function TBrookExpression.GetHandle: Pointer;
+function TBrookExpressionArguments.GetHandle: Pointer;
 begin
   Result := FHandle;
 end;
 
-procedure TBrookExpression.SetExtensions(AValue: TBrookExpressionExtensions);
-begin
-  FExtensions.Clear;
-  if Assigned(AValue) then
-    FExtensions.Assign(AValue);
-end;
-
-procedure TBrookExpression.Compile(const AExpression: string);
-var
-  M: TMarshaller;
+function TBrookExpressionArguments.GetArgument(AIndex: Integer): Double;
 begin
   SgLib.Check;
-  SgLib.CheckLastError(sg_expr_compile(FHandle, M.ToCString(AExpression),
-    Length(AExpression), nil));
+  Result := sg_expr_arg(FHandle, AIndex);
 end;
 
-function TBrookExpression.GetVariable(const AName: string): Double;
+{ TBrookMathExpression }
+
+constructor TBrookMathExpression.Create(AOwner: TComponent);
+begin
+  inherited Create(AOwner);
+  FExtensions := CreateExtensions;
+  SgLib.AddUnloadEvent(InternalLibUnloadEvent, Self);
+end;
+
+destructor TBrookMathExpression.Destroy;
+begin
+  SetActive(False);
+  FExtensions.Free;
+  SgLib.RemoveUnloadEvent(InternalLibUnloadEvent);
+  inherited Destroy;
+end;
+
+class function TBrookMathExpression.DoExprFunc(Acls: Pcvoid;
+  Aargs: Psg_expr_argument; const Aidentifier: Pcchar): cdouble; cdecl;
+var
+  M: TMarshaller;
+  A: TBrookExpressionArguments;
+begin
+  A := TBrookExpressionArguments.Create(Aargs);
+  try
+    Result := TBrookMathExpression(Acls).DoExtension(A,
+      M.ToCString(Aidentifier));
+  finally
+    A.Destroy;
+  end;
+end;
+
+function TBrookMathExpression.CreateExtensions: TStringList;
+begin
+  Result := TStringList.Create;
+end;
+
+procedure TBrookMathExpression.CheckActive;
+begin
+  if (not (csLoading in ComponentState)) and (not Active) then
+    raise EInvalidOpException.Create(SBrookInactiveMathExpression);
+end;
+
+procedure TBrookMathExpression.Loaded;
+begin
+  inherited Loaded;
+  try
+    if FStreamedActive then
+      SetActive(True);
+  except
+    if csDesigning in ComponentState then
+    begin
+      if Assigned(ApplicationHandleException) then
+        ApplicationHandleException(ExceptObject)
+      else
+        ShowException(ExceptObject, ExceptAddr);
+    end
+    else
+      raise;
+  end;
+end;
+
+function TBrookMathExpression.GetHandle: Pointer;
+begin
+  Result := FHandle;
+end;
+
+procedure TBrookMathExpression.InternalLibUnloadEvent(ASender: TObject);
+begin
+  TBrookMathExpression(ASender).Close;
+end;
+
+function TBrookMathExpression.DoExtension(AArgs: TBrookExpressionArguments;
+  const AIdentifier: string): Double;
+begin
+  if Assigned(FOnExtension) then
+    Exit(FOnExtension(Self, AArgs, AIdentifier));
+  Result := NaN;
+end;
+
+procedure TBrookMathExpression.SetExtensions(AValue: TStringList);
+begin
+  if Assigned(AValue) then
+    FExtensions.Assign(AValue)
+  else
+    FExtensions.Clear;
+end;
+
+procedure TBrookMathExpression.DoOpen;
+begin
+  if Assigned(FHandle) then
+    Exit;
+  SgLib.Check;
+  FHandle := sg_expr_new;
+  FActive := Assigned(FHandle);
+  if Assigned(FOnActivate) then
+    FOnActivate(Self);
+end;
+
+procedure TBrookMathExpression.DoClose;
+begin
+  FExtensionsHandle := nil;
+  if not Assigned(FHandle) then
+    Exit;
+  SgLib.Check;
+  sg_expr_free(FHandle);
+  FHandle := nil;
+  FActive := False;
+  if Assigned(FOnDeactivate) then
+    FOnDeactivate(Self);
+end;
+
+function TBrookMathExpression.IsActiveStored: Boolean;
+begin
+  Result := FActive;
+end;
+
+procedure TBrookMathExpression.SetActive(AValue: Boolean);
+begin
+  if AValue = FActive then
+    Exit;
+  if csDesigning in ComponentState then
+  begin
+    if not (csLoading in ComponentState) then
+      SgLib.Check;
+    FActive := AValue;
+  end
+  else
+    if AValue then
+    begin
+      if csReading in ComponentState then
+        FStreamedActive := True
+      else
+        DoOpen;
+    end
+    else
+      DoClose;
+end;
+
+function TBrookMathExpression.GetVariable(const AName: string): Double;
 var
   M: TMarshaller;
 begin
+  CheckActive;
   SgLib.Check;
   Result := sg_expr_var(FHandle, M.ToCString(AName), Length(AName));
 end;
 
-procedure TBrookExpression.SetVariable(const AName: string;
+procedure TBrookMathExpression.SetVariable(const AName: string;
   const AValue: Double);
 var
   M: TMarshaller;
 begin
+  CheckActive;
   SgLib.Check;
   SgLib.CheckLastError(sg_expr_set_var(FHandle, M.ToCString(AName),
     Length(AName), AValue));
 end;
 
-function TBrookExpression.Evaluate: Double;
+procedure TBrookMathExpression.Compile(const AExpression: string);
+var
+  EX: sg_expr_extension;
+  M: TMarshaller;
+  I: Integer;
 begin
+  CheckActive;
+  SgLib.Check;
+  SetLength(FExtensionsHandle, Succ(FExtensions.Count));
+  for I := 0 to Pred(FExtensions.Count) do
+  begin
+    EX.func := DoExprFunc;
+    EX.identifier := M.ToCString(FExtensions[I]);
+    EX.cls := Self;
+    FExtensionsHandle[I] := EX;
+  end;
+  FExtensionsHandle[FExtensions.Count] := Default(sg_expr_extension);
+  SgLib.CheckLastError(sg_expr_compile(FHandle, M.ToCString(AExpression),
+    Length(AExpression), Psg_expr_extension(FExtensionsHandle)));
+end;
+
+function TBrookMathExpression.Evaluate: Double;
+begin
+  CheckActive;
   SgLib.Check;
   Result := sg_expr_eval(FHandle);
+end;
+
+procedure TBrookMathExpression.Open;
+begin
+  SetActive(True);
+end;
+
+procedure TBrookMathExpression.Close;
+begin
+  SetActive(False);
 end;
 
 end.

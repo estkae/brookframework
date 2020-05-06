@@ -136,6 +136,7 @@ implementation
 
 uses
   BrookLibraryLoader,
+  BrookMathExpression,
   BrookMediaTypes,
   BrookURLEntryPoints,
   BrookURLRouter,
@@ -170,6 +171,7 @@ procedure Register;
 begin
   RegisterComponents('Brook', [
     TBrookLibraryLoader,
+    TBrookMathExpression,
     TBrookMIME,
     TBrookURLEntryPoints,
     TBrookURLRouter,
