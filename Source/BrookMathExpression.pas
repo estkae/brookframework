@@ -71,6 +71,7 @@ type
     FOnActivate: TNotifyEvent;
     FOnDeactivate: TNotifyEvent;
     FHandle: Psg_expr;
+    FExpression: string;
     FActive: Boolean;
     FStreamedActive: Boolean;
     FCompiled: Boolean;
@@ -99,11 +100,12 @@ type
     function Evaluate: Double; virtual;
     function GetVariable(const AName: string): Double; virtual;
     procedure SetVariable(const AName: string; const AValue: Double); virtual;
+    property Compiled: Boolean read FCompiled;
     property Variables[const AName: string]: Double read GetVariable
       write SetVariable; default;
   published
     property Active: Boolean read FActive write SetActive stored IsActiveStored;
-    property Compiled: Boolean read FCompiled;
+    property Expression: string read FExpression write FExpression;
     property Extensions: TStringList read FExtensions write SetExtensions;
     property OnExtension: TBrookExpressionExtensionEvent read FOnExtension
       write FOnExtension;
@@ -152,13 +154,12 @@ end;
 class function TBrookMathExpression.DoExprFunc(Acls: Pcvoid;
   Aargs: Psg_expr_argument; const Aidentifier: Pcchar): cdouble; cdecl;
 var
-  M: TMarshaller;
   A: TBrookExpressionArguments;
 begin
   A := TBrookExpressionArguments.Create(Aargs);
   try
     Result := TBrookMathExpression(Acls).DoExtension(A,
-      M.ToCString(Aidentifier));
+      TMarshal.ToString(Aidentifier));
   finally
     A.Destroy;
   end;
@@ -327,8 +328,13 @@ end;
 
 function TBrookMathExpression.Evaluate: Double;
 begin
-  CheckActive;
-  SgLib.Check;
+  if FCompiled then
+  begin
+    CheckActive;
+    SgLib.Check;
+  end
+  else
+    Compile(FExpression);
   Result := sg_expr_eval(FHandle);
 end;
 
