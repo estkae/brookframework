@@ -42,21 +42,23 @@ resourcestring
 
 type
   (* experimental *)
-  TBrookMathExpressionArguments = record
+  TBrookMathExpressionExtension = record
   private
     FHandle: Psg_expr_argument;
-    function GetArgument(AIndex: Integer): Double;
+    FIdent: MarshaledAString;
+    function GetArg(AIndex: Integer): Double;
+    function GetIdent: string;
     function GetHandle: Pointer;
   public
-    constructor Create(AHandle: Pointer);
-    property Items[AIndex: Integer]: Double read GetArgument; default;
+    constructor Create(AHandle: Pointer; const AIdent: MarshaledAString);
+    property Args[AIndex: Integer]: Double read GetArg; default;
+    property Ident: string read GetIdent;
     property Handle: Pointer read GetHandle;
   end;
 
   (* experimental *)
   TBrookMathExpressionExtensionEvent = function(ASender: TObject;
-    AArgs: TBrookMathExpressionArguments;
-    const AIdentifier: string): Double of object;
+    AExtension: TBrookMathExpressionExtension): Double of object;
 
   (* experimental *)
   TBrookMathExpressionErrorKind = (ekNone, ekUnknown, ekUnexpectedNumber,
@@ -107,8 +109,8 @@ type
       const Aidentifier: Pcchar): cdouble; cdecl; static;
     procedure Loaded; override;
     function GetHandle: Pointer; override;
-    function DoExtension(ASender: TObject; AArgs: TBrookMathExpressionArguments;
-      const AIdentifier: string): Double; virtual;
+    function DoExtension(ASender: TObject;
+      AExtension: TBrookMathExpressionExtension): Double; virtual;
     procedure DoError(ASender: TObject;
       AError: TBrookMathExpressionError); virtual;
     procedure DoOpen; virtual;
@@ -143,22 +145,29 @@ type
 
 implementation
 
-{ TBrookMathExpressionArguments }
+{ TBrookMathExpressionExtension }
 
-constructor TBrookMathExpressionArguments.Create(AHandle: Pointer);
+constructor TBrookMathExpressionExtension.Create(AHandle: Pointer;
+  const AIdent: MarshaledAString);
 begin
   FHandle := AHandle;
+  FIdent := AIdent;
 end;
 
-function TBrookMathExpressionArguments.GetHandle: Pointer;
+function TBrookMathExpressionExtension.GetHandle: Pointer;
 begin
   Result := FHandle;
 end;
 
-function TBrookMathExpressionArguments.GetArgument(AIndex: Integer): Double;
+function TBrookMathExpressionExtension.GetArg(AIndex: Integer): Double;
 begin
   SgLib.Check;
   Result := sg_expr_arg(FHandle, AIndex);
+end;
+
+function TBrookMathExpressionExtension.GetIdent: string;
+begin
+  Result := TMarshal.ToString(FIdent);
 end;
 
 { TBrookMathExpressionError }
@@ -207,8 +216,7 @@ class function TBrookMathExpression.DoExprFunc(Acls: Pcvoid;
   Aargs: Psg_expr_argument; const Aidentifier: Pcchar): cdouble;
 begin
   Result := TBrookMathExpression(Acls).DoExtension(Acls,
-    TBrookMathExpressionArguments.Create(Aargs),
-    TMarshal.ToString(Aidentifier));
+    TBrookMathExpressionExtension.Create(Aargs, Aidentifier));
 end;
 
 function TBrookMathExpression.CreateExtensions: TStringList;
@@ -252,10 +260,10 @@ begin
 end;
 
 function TBrookMathExpression.DoExtension(ASender: TObject;
-  AArgs: TBrookMathExpressionArguments; const AIdentifier: string): Double;
+  AExtension: TBrookMathExpressionExtension): Double;
 begin
   if Assigned(FOnExtension) then
-    Exit(FOnExtension(ASender, AArgs, AIdentifier));
+    Exit(FOnExtension(ASender, AExtension));
   Result := NaN;
 end;
 
