@@ -105,7 +105,9 @@ type
     destructor Destroy; override;
     procedure Open;
     procedure Close;
-    function Compile(const AExpression: string): Boolean; virtual;
+    function Compile(const AExpression: string; out ANear: Integer;
+      out AErrorKind: TBrookExpressionErrorKind): Boolean; overload; virtual;
+    function Compile(const AExpression: string): Boolean; overload; virtual;
     procedure Clear; virtual;
     function Evaluate: Double; virtual;
     function GetVariable(const AName: string): Double; virtual;
@@ -311,7 +313,8 @@ begin
     Length(AName), AValue));
 end;
 
-function TBrookMathExpression.Compile(const AExpression: string): Boolean;
+function TBrookMathExpression.Compile(const AExpression: string;
+  out ANear: Integer; out AErrorKind: TBrookExpressionErrorKind): Boolean;
 var
   EX: sg_expr_extension;
   M: TMarshaller;
@@ -334,11 +337,23 @@ begin
   R := sg_expr_compile(FHandle, M.ToCString(AExpression), Length(AExpression),
     @FExtensionsHandle[0]);
   FCompiled := R = 0;
+  if not FCompiled then
+  begin
+
+    ANear := sg_expr_near(FHandle);
+    AErrorKind := TBrookExpressionErrorKind(sg_expr_err(FHandle));
+  end;
   Result := FCompiled;
+end;
+
+function TBrookMathExpression.Compile(const AExpression: string): Boolean;
+var
+  N: Integer;
+  E: TBrookExpressionErrorKind;
+begin
+  Result := Compile(AExpression, N, E);
   if not Result then
-    DoError(Self, sg_expr_near(FHandle),
-      TBrookExpressionErrorKind(sg_expr_err(FHandle)),
-        TMarshal.ToString(sg_expr_strerror(FHandle)));
+    DoError(Self, N, E, TMarshal.ToString(sg_expr_strerror(FHandle)));
 end;
 
 procedure TBrookMathExpression.Clear;
