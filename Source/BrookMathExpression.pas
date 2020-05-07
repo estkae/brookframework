@@ -111,6 +111,7 @@ type
       const Aidentifier: Pcchar): cdouble; cdecl; static;
     procedure Loaded; override;
     function GetHandle: Pointer; override;
+    procedure DoExtensionsChange(Sender: TObject); virtual;
     function DoExtension(ASender: TObject;
       AExtension: TBrookMathExpressionExtension): Double; virtual;
     procedure DoError(ASender: TObject;
@@ -210,6 +211,7 @@ constructor TBrookMathExpression.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   FExtensions := CreateExtensions;
+  FExtensions.OnChange := DoExtensionsChange;
   SgLib.AddUnloadEvent(InternalLibUnloadEvent, Self);
 end;
 
@@ -266,6 +268,11 @@ end;
 procedure TBrookMathExpression.InternalLibUnloadEvent(ASender: TObject);
 begin
   TBrookMathExpression(ASender).Close;
+end;
+
+procedure TBrookMathExpression.DoExtensionsChange(Sender: TObject);
+begin
+  Clear;
 end;
 
 function TBrookMathExpression.DoExtension(ASender: TObject;
@@ -383,15 +390,20 @@ begin
     Exit(True);
   CheckActive;
   SgLib.Check;
-  SetLength(FExtensionsHandle, Succ(FExtensions.Count));
-  for I := 0 to Pred(FExtensions.Count) do
-  begin
-    EX.func := DoExprFunc;
-    EX.identifier := M.ToCString(FExtensions[I]);
-    EX.cls := Self;
-    FExtensionsHandle[I] := EX;
+  FExtensions.BeginUpdate;
+  try
+    SetLength(FExtensionsHandle, Succ(FExtensions.Count));
+    for I := 0 to Pred(FExtensions.Count) do
+    begin
+      EX.func := DoExprFunc;
+      EX.identifier := M.ToCString(FExtensions[I]);
+      EX.cls := Self;
+      FExtensionsHandle[I] := EX;
+    end;
+    FExtensionsHandle[FExtensions.Count] := Default(sg_expr_extension);
+  finally
+    FExtensions.EndUpdate;
   end;
-  FExtensionsHandle[FExtensions.Count] := Default(sg_expr_extension);
   R := sg_expr_compile(FHandle, M.ToCString(AExpression), Length(AExpression),
     @FExtensionsHandle[0]);
   FCompiled := R = 0;
