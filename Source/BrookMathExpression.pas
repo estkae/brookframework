@@ -39,7 +39,6 @@ uses
 
 resourcestring
   SBrookInactiveMathExpression = 'Inactive math expression.';
-  SBrookExpressionAlreadyCompiled = 'Math expression already compiled.';
 
 type
   (* experimental *)
@@ -60,7 +59,14 @@ type
     const AIdentifier: string): Double of object;
 
   (* experimental *)
-  EBrookMathExpression = class(Exception);
+  TBrookExpressionErrorKind = (ekNone, ekUnknown, ekUnexpectedNumber,
+    ekUnexpectedWord, ekUnexpectedParens, ekMissingOperand, ekUnknownOperator,
+    ekInvalidFuncName, ekBadCall, ekBadParens, ekTooFewFuncArgs,
+    ekFirstArgIsNotVar, ekBadVariableName, ekBadAssignment);
+
+  (* experimental *)
+  TBrookExpressionErrorEvent = procedure(ASender: TObject; ANear: Integer;
+    AErrorKind: TBrookExpressionErrorKind; const AError: string) of object;
 
   (* experimental *)
   TBrookMathExpression = class(TBrookHandledComponent)
@@ -68,6 +74,7 @@ type
     FExtensions: TStringList;
     FExtensionsHandle: array of sg_expr_extension;
     FOnExtension: TBrookExpressionExtensionEvent;
+    FOnError: TBrookExpressionErrorEvent;
     FOnActivate: TNotifyEvent;
     FOnDeactivate: TNotifyEvent;
     FHandle: Psg_expr;
@@ -88,6 +95,8 @@ type
     function GetHandle: Pointer; override;
     function DoExtension(ASender: TObject; AArgs: TBrookExpressionArguments;
       const AIdentifier: string): Double; virtual;
+    procedure DoError(ASender: TObject; ANear: Integer;
+      AErrorKind: TBrookExpressionErrorKind; const AError: string); virtual;
     procedure DoOpen; virtual;
     procedure DoClose; virtual;
     procedure CheckActive; inline;
@@ -96,7 +105,7 @@ type
     destructor Destroy; override;
     procedure Open;
     procedure Close;
-    procedure Compile(const AExpression: string); virtual;
+    function Compile(const AExpression: string): Boolean; virtual;
     procedure Clear; virtual;
     function Evaluate: Double; virtual;
     function GetVariable(const AName: string): Double; virtual;
@@ -110,6 +119,7 @@ type
     property Extensions: TStringList read FExtensions write SetExtensions;
     property OnExtension: TBrookExpressionExtensionEvent read FOnExtension
       write FOnExtension;
+    property OnError: TBrookExpressionErrorEvent read FOnError write FOnError;
     property OnActivate: TNotifyEvent read FOnActivate write FOnActivate;
     property OnDeactivate: TNotifyEvent read FOnDeactivate write FOnDeactivate;
   end;
@@ -206,6 +216,13 @@ begin
   Result := NaN;
 end;
 
+procedure TBrookMathExpression.DoError(ASender: TObject; ANear: Integer;
+  AErrorKind: TBrookExpressionErrorKind; const AError: string);
+begin
+  if Assigned(FOnError) then
+    FOnError(ASender, ANear, AErrorKind, AError);
+end;
+
 procedure TBrookMathExpression.SetExpression(const AValue: string);
 begin
   if AValue = FExpression then
@@ -294,14 +311,15 @@ begin
     Length(AName), AValue));
 end;
 
-procedure TBrookMathExpression.Compile(const AExpression: string);
+function TBrookMathExpression.Compile(const AExpression: string): Boolean;
 var
   EX: sg_expr_extension;
   M: TMarshaller;
   I: Integer;
+  R: cint;
 begin
   if FCompiled then
-    raise EBrookMathExpression.Create(SBrookExpressionAlreadyCompiled);
+    Exit(True);
   CheckActive;
   SgLib.Check;
   SetLength(FExtensionsHandle, Succ(FExtensions.Count));
@@ -313,9 +331,14 @@ begin
     FExtensionsHandle[I] := EX;
   end;
   FExtensionsHandle[FExtensions.Count] := Default(sg_expr_extension);
-  SgLib.CheckLastError(sg_expr_compile(FHandle, M.ToCString(AExpression),
-    Length(AExpression), @FExtensionsHandle[0]));
-  FCompiled := True;
+  R := sg_expr_compile(FHandle, M.ToCString(AExpression), Length(AExpression),
+    @FExtensionsHandle[0]);
+  FCompiled := R = 0;
+  Result := FCompiled;
+  if not Result then
+    DoError(Self, sg_expr_near(FHandle),
+      TBrookExpressionErrorKind(sg_expr_err(FHandle)),
+        TMarshal.ToString(sg_expr_strerror(FHandle)));
 end;
 
 procedure TBrookMathExpression.Clear;
