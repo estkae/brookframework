@@ -31,8 +31,11 @@ interface
 
 uses
   SysUtils,
-  Classes,
   Math,
+{$IFNDEF FPC}
+  AnsiStrings,
+{$ENDIF}
+  Classes,
   Marshalling,
   libsagui,
   BrookHandledClasses;
@@ -100,6 +103,7 @@ type
     FActive: Boolean;
     FStreamedActive: Boolean;
     FCompiled: Boolean;
+    procedure DoExtensionsChange(Sender: TObject);
     function IsActiveStored: Boolean;
     procedure SetActive(AValue: Boolean);
     procedure SetExtensions(AValue: TStringList);
@@ -111,7 +115,6 @@ type
       const Aidentifier: Pcchar): cdouble; cdecl; static;
     procedure Loaded; override;
     function GetHandle: Pointer; override;
-    procedure DoExtensionsChange(Sender: TObject); virtual;
     function DoExtension(ASender: TObject;
       AExtension: TBrookMathExpressionExtension): Double; virtual;
     procedure DoError(ASender: TObject;
@@ -319,7 +322,7 @@ end;
 
 procedure TBrookMathExpression.DoClose;
 begin
-  FExtensionsHandle := nil;
+  Clear;
   if not Assigned(FHandle) then
     Exit;
   SgLib.Check;
@@ -390,20 +393,22 @@ begin
     Exit(True);
   CheckActive;
   SgLib.Check;
-  FExtensions.BeginUpdate;
-  try
-    SetLength(FExtensionsHandle, Succ(FExtensions.Count));
-    for I := 0 to Pred(FExtensions.Count) do
-    begin
-      EX.func := DoExprFunc;
-      EX.identifier := M.ToCString(FExtensions[I]);
-      EX.cls := Self;
-      FExtensionsHandle[I] := EX;
-    end;
-    FExtensionsHandle[FExtensions.Count] := Default(sg_expr_extension);
-  finally
-    FExtensions.EndUpdate;
+  SetLength(FExtensionsHandle, Succ(FExtensions.Count));
+  for I := 0 to Pred(FExtensions.Count) do
+  begin
+    EX.func := DoExprFunc;
+    EX.identifier :=
+{$IFNDEF FPC}
+      AnsiStrings.StrNew(
+{$ENDIF}
+        M.ToCString(FExtensions[I])
+{$IFNDEF FPC}
+      )
+{$ENDIF};
+    EX.cls := Self;
+    FExtensionsHandle[I] := EX;
   end;
+  FExtensionsHandle[FExtensions.Count] := Default(sg_expr_extension);
   R := sg_expr_compile(FHandle, M.ToCString(AExpression), Length(AExpression),
     @FExtensionsHandle[0]);
   FCompiled := R = 0;
@@ -422,11 +427,19 @@ begin
 end;
 
 procedure TBrookMathExpression.Clear;
+{$IFNDEF FPC}
+var
+  I: Integer;
+{$ENDIF}
 begin
   if not Assigned(FHandle) then
     Exit;
   SgLib.Check;
   SgLib.CheckLastError(sg_expr_clear(FHandle));
+{$IFNDEF FPC}
+  for I := Low(FExtensionsHandle) to Pred(High(FExtensionsHandle)) do
+    AnsiStrings.StrDispose(FExtensionsHandle[I].identifier);
+{$ENDIF}
   FExtensionsHandle := nil;
   FCompiled := False;
 end;
