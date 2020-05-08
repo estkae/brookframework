@@ -722,12 +722,15 @@ type
     GHandle: TLibHandle;
   private
     class procedure CallUnloadEvents; static;
+    class function InternalLoad(
+      const AName: TFileName): TLibHandle; static; inline;
   public
     class procedure Init; static;
     class procedure Done; static;
     class procedure AddUnloadEvent(AEvent: TNotifyEvent;
       ASender: TObject); static;
     class procedure RemoveUnloadEvent(AEvent: TNotifyEvent); static;
+    class procedure ClearUnloadEvents; static;
     class function GetLastName: string; static;
     class procedure CheckVersion(AVersion: Integer); overload; static;
     class procedure CheckVersion; overload; static; inline;
@@ -739,6 +742,10 @@ type
     class property Handle: TLibHandle read GHandle;
   end;
 
+function cpow(const X, Y: cdouble): cdouble; cdecl; inline;
+
+function cfmod(const X, Y: cdouble): cdouble; cdecl; inline;
+
 implementation
 
 function SameNotifyEvent(AN1, AN2: TNotifyEvent): Boolean; inline;
@@ -747,12 +754,12 @@ begin
     (TMethod(AN1).Data = TMethod(AN2).Data);
 end;
 
-function MathPower(const X, Y: cdouble): cdouble; cdecl;
+function cpow(const X, Y: cdouble): cdouble;
 begin
-  Result := Math.Power(X, Y);
+  Result := Power(X, Y);
 end;
 
-function MathMod(const X, Y: cdouble): cdouble; cdecl;
+function cfmod(const X, Y: cdouble): cdouble;
 begin
   Result := X - Y * Int(X / Y);
 end;
@@ -828,12 +835,14 @@ class procedure SgLib.Init;
 begin
   GCS := TCriticalSection.Create;
   GUnloadEvents := TObjectList.Create;
+  InternalLoad(SG_LIB_NAME);
 end;
 
 class procedure SgLib.Done;
 begin
   GCS.Acquire;
   try
+    Unload;
     GUnloadEvents.Free;
   finally
     GCS.Release;
@@ -852,7 +861,6 @@ begin
     begin
       H := GUnloadEvents[I] as TSgLibUnloadHolder;
       H.Event(H.Sender);
-      GUnloadEvents.Delete(I);
     end;
   finally
     GCS.Release;
@@ -891,6 +899,16 @@ begin
         GUnloadEvents.Delete(I);
         Break;
       end;
+  finally
+    GCS.Release;
+  end;
+end;
+
+class procedure SgLib.ClearUnloadEvents;
+begin
+  GCS.Acquire;
+  try
+    GUnloadEvents.Clear;
   finally
     GCS.Release;
   end;
@@ -940,26 +958,20 @@ begin
 {$ELSE}
   S := TMarshal.ReadStringAsUtf8(TPtrWrapper.Create(@P[0]));
 {$ENDIF}
-  E := EOSError.Create(S);
+  E := EOSError.Create(S.TrimRight);
   E.ErrorCode := ALastError;
   raise E;
 end;
 
-class function SgLib.Load(const AName: TFileName): TLibHandle;
+class function SgLib.InternalLoad(const AName: TFileName): TLibHandle;
 begin //FI:C101
   GCS.Acquire;
   try
-    if AName = '' then
-      raise EArgumentException.Create(SSgLibEmptyName);
+    if GHandle <> NilHandle then
+      Exit(GHandle);
     GHandle := SafeLoadLibrary(AName);
     if GHandle = NilHandle then
-    begin
-{$IFDEF MSWINDOWS}
-      if GetLastError = ERROR_BAD_EXE_FORMAT then
-        raise ESgLibNotLoaded.CreateFmt(SSgLibInvalid, [AName]);
-{$ENDIF}
-      raise ESgLibNotLoaded.CreateFmt(SSgLibNotLoaded, [AName])
-    end;
+      Exit(NilHandle);
     GLastName := AName;
 
     sg_version := GetProcAddress(GHandle, 'sg_version');
@@ -1131,11 +1143,26 @@ begin //FI:C101
     sg_expr_strerror := GetProcAddress(GHandle, 'sg_expr_strerror');
     sg_expr_calc := GetProcAddress(GHandle, 'sg_expr_calc');
 
-    sg_math_set(MathPower, MathMod);
+    sg_math_set(cpow, cfmod);
 
     Result := GHandle;
   finally
     GCS.Release;
+  end;
+end;
+
+class function SgLib.Load(const AName: TFileName): TLibHandle;
+begin
+  if AName = '' then
+    raise EArgumentException.Create(SSgLibEmptyName);
+  Result := SgLib.InternalLoad(AName);
+  if Result = NilHandle then
+  begin
+{$IFDEF MSWINDOWS}
+    if GetLastError = ERROR_BAD_EXE_FORMAT then
+      raise ESgLibNotLoaded.CreateFmt(SSgLibInvalid, [AName]);
+{$ENDIF}
+    raise ESgLibNotLoaded.CreateFmt(SSgLibNotLoaded, [AName])
   end;
 end;
 
