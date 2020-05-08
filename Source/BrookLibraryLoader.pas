@@ -81,6 +81,8 @@ type
     class procedure Load; overload; static;
     { Unloads the library dynamically. }
     class procedure Unload; static;
+    { Checks if the library is already loaded. }
+    class function IsLoaded: Boolean; static;
     { Loads the library dynamically. }
     procedure Open; virtual;
     { Unloads the library dynamically. }
@@ -130,7 +132,7 @@ end;
 procedure TBrookLibraryLoader.InternalOpen;
 begin
   FHandle := SgLib.Load(FLibraryName);
-  FActive := FHandle <> NilHandle;
+  FActive := SgLib.IsLoaded;
   if FActive then
     FVersion := Sagui.VersionStr
   else
@@ -174,6 +176,11 @@ end;
 class procedure TBrookLibraryLoader.Unload;
 begin
   SgLib.Unload;
+end;
+
+class function TBrookLibraryLoader.IsLoaded: Boolean;
+begin
+  Result := SgLib.IsLoaded;
 end;
 
 procedure TBrookLibraryLoader.SetActive(AValue: Boolean);
@@ -227,7 +234,7 @@ begin
   if not FActive then
     Exit;
   FHandle := SgLib.Unload;
-  FActive := FHandle <> NilHandle;
+  FActive := SgLib.IsLoaded;
   if not FActive then
     FVersion := '';
   if Assigned(FOnUnload) then
