@@ -6,7 +6,7 @@
  *
  * Microframework which helps to develop web Pascal applications.
  *
- * Copyright (c) 2012-2019 Silvio Clecio <silvioprog@gmail.com>
+ * Copyright (c) 2012-2020 Silvio Clecio <silvioprog@gmail.com>
  *
  * Brook framework is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -36,12 +36,10 @@ uses
   ExtCtrls,
   ValEdit,
   Forms,
-  BrookLibraryLoader,
   BrookStringMap;
 
 type
   TfrMain = class(TForm)
-    BrookLibraryLoader1: TBrookLibraryLoader;
     btAdd: TButton;
     btRemove: TButton;
     btClear: TButton;
@@ -52,7 +50,6 @@ type
     procedure btRemoveClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure FormShow(Sender: TObject);
   private
     FMap: TBrookStringMap;
     FMapHandle: Pointer;
@@ -76,11 +73,6 @@ end;
 procedure TfrMain.FormDestroy(Sender: TObject);
 begin
   FMap.Free;
-end;
-
-procedure TfrMain.FormShow(Sender: TObject);
-begin
-  BrookLibraryLoader1.Open;
 end;
 
 procedure TfrMain.btAddClick(Sender: TObject);
