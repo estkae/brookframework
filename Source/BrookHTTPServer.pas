@@ -356,7 +356,7 @@ constructor TBrookHTTPServer.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   FSecurity := CreateSecurity;
-  SgLib.AddUnloadEvent(InternalLibUnloadEvent, Self);
+  SgLib.UnloadEvents.Add(InternalLibUnloadEvent, Self);
   FPostBufferSize := BROOK_POST_BUFFER_SIZE;
   FPayloadLimit := BROOK_PAYLOAD_LIMIT;
   FUploadsLimit := BROOK_UPLOADS_LIMIT;
@@ -368,7 +368,7 @@ begin
     SetActive(False);
   finally
     FSecurity.Free;
-    SgLib.RemoveUnloadEvent(InternalLibUnloadEvent);
+    SgLib.UnloadEvents.Remove(InternalLibUnloadEvent);
     inherited Destroy;
   end;
 end;

@@ -673,7 +673,7 @@ end;
 constructor TBrookMIME.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  SgLib.AddUnloadEvent(InternalLibUnloadEvent, Self);
+  SgLib.UnloadEvents.Add(InternalLibUnloadEvent, Self);
   FDefaultType := BROOK_CT_OCTET_STREAM;
   FFileName := GBrookMIMEFileName;
   FProvider := BROOK_MIME_PROVIDER;
@@ -683,7 +683,7 @@ destructor TBrookMIME.Destroy;
 begin
   try
     SetActive(False);
-    SgLib.RemoveUnloadEvent(InternalLibUnloadEvent);
+    SgLib.UnloadEvents.Remove(InternalLibUnloadEvent);
   finally
     inherited Destroy;
   end;

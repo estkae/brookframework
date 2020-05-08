@@ -225,14 +225,14 @@ begin
   inherited Create(AOwner);
   FExtensions := CreateExtensions;
   FExtensions.OnChange := DoExtensionsChange;
-  SgLib.AddUnloadEvent(InternalLibUnloadEvent, Self);
+  SgLib.UnloadEvents.Add(InternalLibUnloadEvent, Self);
 end;
 
 destructor TBrookMathExpression.Destroy;
 begin
   SetActive(False);
   FExtensions.Free;
-  SgLib.RemoveUnloadEvent(InternalLibUnloadEvent);
+  SgLib.UnloadEvents.Remove(InternalLibUnloadEvent);
   inherited Destroy;
 end;
 

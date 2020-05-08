@@ -358,13 +358,13 @@ end;
 constructor TBrookURLEntryPointList.Create(AOwner: TPersistent);
 begin
   inherited Create(AOwner, GetEntryPointClass);
-  SgLib.AddUnloadEvent(InternalLibUnloadEvent, Self);
+  SgLib.UnloadEvents.Add(InternalLibUnloadEvent, Self);
 end;
 
 destructor TBrookURLEntryPointList.Destroy;
 begin
   Unprepare;
-  SgLib.RemoveUnloadEvent(InternalLibUnloadEvent);
+  SgLib.UnloadEvents.Remove(InternalLibUnloadEvent);
   inherited Destroy;
 end;
 
@@ -545,14 +545,14 @@ constructor TBrookURLEntryPoints.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   FList := CreateList;
-  SgLib.AddUnloadEvent(InternalLibUnloadEvent, Self);
+  SgLib.UnloadEvents.Add(InternalLibUnloadEvent, Self);
 end;
 
 destructor TBrookURLEntryPoints.Destroy;
 begin
   SetActive(False);
   FList.Free;
-  SgLib.RemoveUnloadEvent(InternalLibUnloadEvent);
+  SgLib.UnloadEvents.Remove(InternalLibUnloadEvent);
   inherited Destroy;
 end;
 

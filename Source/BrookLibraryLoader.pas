@@ -106,14 +106,14 @@ implementation
 constructor TBrookLibraryLoader.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  SgLib.AddUnloadEvent(InternalLibUnloadEvent, Self);
+  SgLib.UnloadEvents.Add(InternalLibUnloadEvent, Self);
   FLibraryName := SG_LIB_NAME;
 end;
 
 destructor TBrookLibraryLoader.Destroy;
 begin
   Close;
-  SgLib.RemoveUnloadEvent(InternalLibUnloadEvent);
+  SgLib.UnloadEvents.Remove(InternalLibUnloadEvent);
   inherited Destroy;
 end;
 

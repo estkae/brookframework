@@ -607,13 +607,13 @@ end;
 constructor TBrookURLRoutes.Create(AOwner: TPersistent);
 begin
   inherited Create(AOwner, GetRouterClass);
-  SgLib.AddUnloadEvent(InternalLibUnloadEvent, Self);
+  SgLib.UnloadEvents.Add(InternalLibUnloadEvent, Self);
 end;
 
 destructor TBrookURLRoutes.Destroy;
 begin
   Unprepare;
-  SgLib.RemoveUnloadEvent(InternalLibUnloadEvent);
+  SgLib.UnloadEvents.Remove(InternalLibUnloadEvent);
   inherited Destroy;
 end;
 
@@ -789,14 +789,14 @@ constructor TBrookURLRouter.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   FRoutes := CreateRoutes;
-  SgLib.AddUnloadEvent(InternalLibUnloadEvent, Self);
+  SgLib.UnloadEvents.Add(InternalLibUnloadEvent, Self);
 end;
 
 destructor TBrookURLRouter.Destroy;
 begin
   SetActive(False);
   FRoutes.Free;
-  SgLib.RemoveUnloadEvent(InternalLibUnloadEvent);
+  SgLib.UnloadEvents.Remove(InternalLibUnloadEvent);
   inherited Destroy;
 end;
 
