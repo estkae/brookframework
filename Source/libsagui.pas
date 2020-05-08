@@ -712,25 +712,38 @@ type
 
   ESgUnloadEvent = class(Exception);
 
+  { TSgUnloadEvents }
+
+  TSgUnloadEvents = class sealed
+  private
+    FCS: TCriticalSection;
+    FList: TObjectList;
+  protected
+    property CS: TCriticalSection read FCS;
+    property List: TObjectList read FList;
+  public
+    constructor Create(ACS: TCriticalSection); virtual;
+    destructor Destroy; override;
+    procedure Add(AEvent: TNotifyEvent; ASender: TObject); virtual;
+    procedure Remove(AEvent: TNotifyEvent); virtual;
+    procedure Clear; virtual;
+    procedure Call; virtual;
+  end;
+
   { SgLib }
 
   SgLib = record
   private class var
     GCS: TCriticalSection;
-    GUnloadEvents: TObjectList;
+    GUnloadEvents: TSgUnloadEvents;
     GLastName: TFileName;
     GHandle: TLibHandle;
   private
-    class procedure CallUnloadEvents; static;
     class function InternalLoad(
       const AName: TFileName): TLibHandle; static; inline;
   public
     class procedure Init; static;
     class procedure Done; static;
-    class procedure AddUnloadEvent(AEvent: TNotifyEvent;
-      ASender: TObject); static;
-    class procedure RemoveUnloadEvent(AEvent: TNotifyEvent); static;
-    class procedure ClearUnloadEvents; static;
     class function GetLastName: string; static;
     class procedure CheckVersion(AVersion: Integer); overload; static;
     class procedure CheckVersion; overload; static; inline;
@@ -739,6 +752,7 @@ type
     class function Unload: TLibHandle; static;
     class function IsLoaded: Boolean; static;
     class procedure Check; static;
+    class property UnloadEvents: TSgUnloadEvents read GUnloadEvents;
     class property Handle: TLibHandle read GHandle;
   end;
 
@@ -829,12 +843,93 @@ begin
   FSender := ASender;
 end;
 
+{ TSgUnloadEvents }
+
+constructor TSgUnloadEvents.Create(ACS: TCriticalSection);
+begin
+  inherited Create;
+  if not Assigned(ACS) then
+    raise EArgumentNilException.CreateFmt(SParamIsNil, ['ACS']);
+  FList := TObjectList.Create;
+  FCS := ACS;
+end;
+
+destructor TSgUnloadEvents.Destroy;
+begin
+  Clear;
+  FList.Free;
+  inherited Destroy;
+end;
+
+procedure TSgUnloadEvents.Add(AEvent: TNotifyEvent; ASender: TObject);
+var
+  I: Integer;
+begin
+  if not Assigned(AEvent) then
+    raise EArgumentNilException.CreateFmt(SParamIsNil, ['AEvent']);
+  FCS.Acquire;
+  try
+    for I := 0 to Pred(FList.Count) do
+      if SameNotifyEvent(TSgLibUnloadHolder(FList[I]).Event, AEvent) then
+        raise ESgUnloadEvent.Create(SSgUnloadEventAlreadyRegistered);
+    FList.Add(TSgLibUnloadHolder.Create(AEvent, ASender));
+  finally
+    FCS.Release;
+  end;
+end;
+
+procedure TSgUnloadEvents.Remove(AEvent: TNotifyEvent);
+var
+  I: Integer;
+begin
+  if not Assigned(AEvent) then
+    raise EArgumentNilException.CreateFmt(SParamIsNil, ['AEvent']);
+  FCS.Acquire;
+  try
+    for I := 0 to Pred(FList.Count) do
+      if SameNotifyEvent(TSgLibUnloadHolder(FList[I]).Event, AEvent) then
+      begin
+        FList.Delete(I);
+        Break;
+      end;
+  finally
+    FCS.Release;
+  end;
+end;
+
+procedure TSgUnloadEvents.Clear;
+begin
+  FCS.Acquire;
+  try
+    FList.Clear;
+  finally
+    FCS.Release;
+  end;
+end;
+
+procedure TSgUnloadEvents.Call;
+var
+  H: TSgLibUnloadHolder;
+  I: Integer;
+begin
+  FCS.Acquire;
+  try
+    for I := Pred(FList.Count) downto 0 do
+    begin
+      H := FList[I] as TSgLibUnloadHolder;
+      H.Event(H.Sender);
+    end;
+  finally
+    FCS.Release;
+  end;
+end;
+
 { SgLib }
 
 class procedure SgLib.Init;
 begin
   GCS := TCriticalSection.Create;
-  GUnloadEvents := TObjectList.Create;
+  GUnloadEvents := TSgUnloadEvents.Create(GCS);
   InternalLoad(SG_LIB_NAME);
 end;
 
@@ -847,70 +942,6 @@ begin
   finally
     GCS.Release;
     GCS.Free;
-  end;
-end;
-
-class procedure SgLib.CallUnloadEvents;
-var
-  H: TSgLibUnloadHolder;
-  I: Integer;
-begin
-  GCS.Acquire;
-  try
-    for I := Pred(GUnloadEvents.Count) downto 0 do
-    begin
-      H := GUnloadEvents[I] as TSgLibUnloadHolder;
-      H.Event(H.Sender);
-    end;
-  finally
-    GCS.Release;
-  end;
-end;
-
-class procedure SgLib.AddUnloadEvent(AEvent: TNotifyEvent;
-  ASender: TObject);
-var
-  I: Integer;
-begin
-  if not Assigned(AEvent) then
-    raise EArgumentNilException.CreateFmt(SParamIsNil, ['AEvent']);
-  GCS.Acquire;
-  try
-    for I := 0 to Pred(GUnloadEvents.Count) do
-      if SameNotifyEvent(TSgLibUnloadHolder(GUnloadEvents[I]).Event, AEvent) then
-        raise ESgUnloadEvent.Create(SSgUnloadEventAlreadyRegistered);
-    GUnloadEvents.Add(TSgLibUnloadHolder.Create(AEvent, ASender));
-  finally
-    GCS.Release;
-  end;
-end;
-
-class procedure SgLib.RemoveUnloadEvent(AEvent: TNotifyEvent);
-var
-  I: Integer;
-begin
-  if not Assigned(AEvent) then
-    raise EArgumentNilException.CreateFmt(SParamIsNil, ['AEvent']);
-  GCS.Acquire;
-  try
-    for I := 0 to Pred(GUnloadEvents.Count) do
-      if SameNotifyEvent(TSgLibUnloadHolder(GUnloadEvents[I]).Event, AEvent) then
-      begin
-        GUnloadEvents.Delete(I);
-        Break;
-      end;
-  finally
-    GCS.Release;
-  end;
-end;
-
-class procedure SgLib.ClearUnloadEvents;
-begin
-  GCS.Acquire;
-  try
-    GUnloadEvents.Clear;
-  finally
-    GCS.Release;
   end;
 end;
 
@@ -1172,7 +1203,7 @@ begin //FI:C101
   try
     if GHandle = NilHandle then
       Exit(NilHandle);
-    CallUnloadEvents;
+    UnloadEvents.Call;
     if not FreeLibrary(GHandle) then
       Exit(GHandle);
     GHandle := NilHandle;

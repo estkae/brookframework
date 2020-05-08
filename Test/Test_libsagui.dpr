@@ -48,7 +48,6 @@ type
 
 procedure TFakeObject.DoAddUnloadEvent1(ASender: TObject);
 begin
-
   TComponent(ASender).Name := 'abc';
 end;
 
@@ -64,7 +63,7 @@ end;
 
 procedure DoAddUnloadEvent(const AArgs: array of const);
 begin
-  SgLib.AddUnloadEvent(nil, AArgs[0].VObject);
+  SgLib.UnloadEvents.Add(nil, AArgs[0].VObject);
 end;
 
 procedure Test_AddUnloadEvent;
@@ -80,13 +79,14 @@ begin
     AssertExcept(DoAddUnloadEvent, EArgumentNilException,
       Format(SParamIsNil, ['AEvent']), [O]);
 
-    SgLib.AddUnloadEvent(O.DoAddUnloadEvent1, nil);
-    SgLib.RemoveUnloadEvent(O.DoAddUnloadEvent1);
+    SgLib.UnloadEvents.Clear;
+    SgLib.UnloadEvents.Add(O.DoAddUnloadEvent1, nil);
+    SgLib.UnloadEvents.Remove(O.DoAddUnloadEvent1);
 
     SgLib.Load(SG_LIB_NAME);
-    SgLib.AddUnloadEvent(O.DoAddUnloadEvent1, C1);
-    SgLib.AddUnloadEvent(O.DoAddUnloadEvent2, C2);
-    SgLib.AddUnloadEvent(O.DoAddUnloadEvent3, C3);
+    SgLib.UnloadEvents.Add(O.DoAddUnloadEvent1, C1);
+    SgLib.UnloadEvents.Add(O.DoAddUnloadEvent2, C2);
+    SgLib.UnloadEvents.Add(O.DoAddUnloadEvent3, C3);
     Assert(C1.Name = '');
     Assert(C2.Name = '');
     Assert(C3.Name = '');
@@ -94,6 +94,7 @@ begin
     Assert(C1.Name = 'abc');
     Assert(C2.Name = 'def');
     Assert(C3.Name = 'ghi');
+    SgLib.UnloadEvents.Clear;
   finally
     O.Free;
     C3.Free;
@@ -104,7 +105,7 @@ end;
 
 procedure DoRemoveUnloadEvent;
 begin
-  SgLib.RemoveUnloadEvent(nil);
+  SgLib.UnloadEvents.Remove(nil);
 end;
 
 procedure Test_RemoveNotifier;
@@ -120,15 +121,17 @@ begin
   C2 := TComponent.Create(nil);
   C3 := TComponent.Create(nil);
   try
+    SgLib.UnloadEvents.Clear;
     SgLib.Load(SG_LIB_NAME);
-    SgLib.AddUnloadEvent(O.DoAddUnloadEvent1, C1);
-    SgLib.AddUnloadEvent(O.DoAddUnloadEvent2, C2);
-    SgLib.AddUnloadEvent(O.DoAddUnloadEvent3, C3);
-    SgLib.RemoveUnloadEvent(O.DoAddUnloadEvent2);
+    SgLib.UnloadEvents.Add(O.DoAddUnloadEvent1, C1);
+    SgLib.UnloadEvents.Add(O.DoAddUnloadEvent2, C2);
+    SgLib.UnloadEvents.Add(O.DoAddUnloadEvent3, C3);
+    SgLib.UnloadEvents.Remove(O.DoAddUnloadEvent2);
     SgLib.Unload;
     Assert(C1.Name = 'abc');
     Assert(C2.Name = '');
     Assert(C3.Name = 'ghi');
+    SgLib.UnloadEvents.Clear;
   finally
     C3.Free;
     C2.Free;
