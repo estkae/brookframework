@@ -634,7 +634,8 @@ end;
 
 procedure TBrookURLRoutes.InternalLibUnloadEvent(ASender: TObject);
 begin
-  TBrookURLRoutes(ASender).Unprepare;
+  if Assigned(ASender) then
+    TBrookURLRoutes(ASender).Unprepare;
 end;
 
 function TBrookURLRoutes.FindDefault: TBrookURLRoute;
@@ -811,7 +812,8 @@ end;
 
 procedure TBrookURLRouter.InternalLibUnloadEvent(ASender: TObject);
 begin
-  TBrookURLRouter(ASender).Close;
+  if Assigned(ASender) then
+    TBrookURLRouter(ASender).Close;
 end;
 
 procedure TBrookURLRouter.CheckItems;

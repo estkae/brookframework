@@ -510,7 +510,8 @@ end;
 
 procedure TBrookHTTPServer.InternalLibUnloadEvent(ASender: TObject);
 begin
-  TBrookHTTPServer(ASender).Close;
+  if Assigned(ASender) then
+    TBrookHTTPServer(ASender).Close;
 end;
 
 procedure TBrookHTTPServer.HandleAuthenticateError(

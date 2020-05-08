@@ -280,7 +280,8 @@ end;
 
 procedure TBrookMathExpression.InternalLibUnloadEvent(ASender: TObject);
 begin
-  TBrookMathExpression(ASender).Close;
+  if Assigned(ASender) then
+    TBrookMathExpression(ASender).Close;
 end;
 
 procedure TBrookMathExpression.DoExtensionsChange(Sender: TObject);

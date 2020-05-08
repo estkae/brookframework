@@ -728,7 +728,8 @@ end;
 
 procedure TBrookMIME.InternalLibUnloadEvent(ASender: TObject);
 begin
-  TBrookMIME(ASender).Close;
+  if Assigned(ASender) then
+    TBrookMIME(ASender).Close;
 end;
 
 function TBrookMIME.GetHandle: Pointer;

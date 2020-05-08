@@ -392,7 +392,8 @@ end;
 
 procedure TBrookURLEntryPointList.InternalLibUnloadEvent(ASender: TObject);
 begin
-  TBrookURLEntryPointList(ASender).Unprepare;
+  if Assigned(ASender) then
+    TBrookURLEntryPointList(ASender).Unprepare;
 end;
 
 function TBrookURLEntryPointList.GetHandle: Pointer;
@@ -593,7 +594,8 @@ end;
 
 procedure TBrookURLEntryPoints.InternalLibUnloadEvent(ASender: TObject);
 begin
-  TBrookURLEntryPoints(ASender).Close;
+  if Assigned(ASender) then
+    TBrookURLEntryPoints(ASender).Close;
 end;
 
 function TBrookURLEntryPoints.GetEnumerator: TBrookURLEntryPointListEnumerator;
