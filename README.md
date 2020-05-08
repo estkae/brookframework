@@ -25,10 +25,16 @@ Brook is a cross-platform microframework which helps to develop web Pascal appli
   - IPv4 and IPv6 on top of a single socket.
 - **Basic authentication:**
   - For standard login using user name and password.
-- **Download/upload:**
+- **Upload/download:**
   - Static body and payload.
   - Content streaming for real-time applications.
   - Small and large files transferring.
+- **Mathematical expression evaluator:**
+  - Arithmetic, bitwise and logical operators.
+  - Variables allocation at build and/or run time.
+  - Macro support to define functions at run time.
+  - Extendable with custom functions.
+  - Error handling with error kind and position.
 - **Media types:**
   - Resolving media types ([MIME](https://en.wikipedia.org/wiki/MIME)) in any supported platform.
 - **String buffer:**

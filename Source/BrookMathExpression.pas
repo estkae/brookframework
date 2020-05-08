@@ -149,7 +149,17 @@ type
     property OnDeactivate: TNotifyEvent read FOnDeactivate write FOnDeactivate;
   end;
 
+function Evaluate(const AExpression: string): Double;
+
 implementation
+
+function Evaluate(const AExpression: string): Double;
+var
+  M: TMarshaller;
+begin
+  SgLib.Check;
+  Result := sg_expr_calc(M.ToCString(AExpression), Length(AExpression));
+end;
 
 { TBrookMathExpressionError }
 
