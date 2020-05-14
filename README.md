@@ -8,9 +8,10 @@ Brook is a cross-platform microframework which helps to develop web Pascal appli
 # Features
 
 - **Three threading modes:**
-  - Event-driven - single thread.
+  - Event-driven - single-thread + polling.
   - Threaded - one thread per request.
-  - Polling - thread pool.
+  - Polling - pre-allocated threads.
+  - Isolated request - request processed outside main thread.
 - **Fast path routing that supports:**
   - Regular expression with [JIT](https://www.pcre.org/current/doc/html/pcre2jit.html) optimization.
   - [Binary search](https://en.wikipedia.org/wiki/Binary_search_algorithm) for path entry-points.
