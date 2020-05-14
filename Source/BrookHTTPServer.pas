@@ -603,7 +603,9 @@ begin
   if Assigned(FOnError) then
     FOnError(ASender, AException)
   else
-    if Assigned(ApplicationHandleException) then
+    if Assigned(ApplicationShowException) then
+      ApplicationShowException(AException)
+    else if Assigned(ApplicationHandleException) then
       ApplicationHandleException(AException)
     else
       ShowException(AException, Pointer(AException));
