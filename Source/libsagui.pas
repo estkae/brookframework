@@ -176,10 +176,6 @@ var
   sg_math_set: function(pow_func: sg_pow_func;
     fmod_func: sg_fmod_func): cint; cdecl;
 
-  sg_pow: function(const x: cdouble; const y: cdouble): cdouble; cdecl;
-
-  sg_fmod: function(const x: cdouble; const y: cdouble): cdouble; cdecl;
-
   sg_strerror: function(errnum: cint; errmsg: Pcchar;
     errlen: csize_t): Pcchar; cdecl;
 
@@ -642,20 +638,18 @@ type
 type
   sg_expr_err_type = cenum;
 const
-  SG_EXPR_ERR_NONE = 0;
-  SG_EXPR_ERR_UNKNOWN = 1;
-  SG_EXPR_ERR_UNEXPECTED_NUMBER = 2;
-  SG_EXPR_ERR_UNEXPECTED_WORD = 3;
-  SG_EXPR_ERR_UNEXPECTED_PARENS = 4;
-  SG_EXPR_ERR_MISSING_OPERAND = 5;
-  SG_EXPR_ERR_UNKNOWN_OPERATOR = 6;
-  SG_EXPR_ERR_INVALID_FUNC_NAME = 7;
-  SG_EXPR_ERR_BAD_CALL = 8;
-  SG_EXPR_ERR_BAD_PARENS = 9;
-  SG_EXPR_ERR_TOO_FEW_FUNC_ARGS = 10;
-  SG_EXPR_ERR_FIRST_ARG_IS_NOT_VAR = 11;
-  SG_EXPR_ERR_BAD_VARIABLE_NAME = 12;
-  SG_EXPR_ERR_BAD_ASSIGNMENT = 13;
+  SG_EXPR_ERR_UNKNOWN = 0;
+  SG_EXPR_ERR_UNEXPECTED_NUMBER = 1;
+  SG_EXPR_ERR_UNEXPECTED_WORD = 2;
+  SG_EXPR_ERR_UNEXPECTED_PARENS = 3;
+  SG_EXPR_ERR_MISSING_OPERAND = 4;
+  SG_EXPR_ERR_UNKNOWN_OPERATOR = 5;
+  SG_EXPR_ERR_INVALID_FUNC_NAME = 6;
+  SG_EXPR_ERR_BAD_PARENS = 7;
+  SG_EXPR_ERR_TOO_FEW_FUNC_ARGS = 8;
+  SG_EXPR_ERR_FIRST_ARG_IS_NOT_VAR = 9;
+  SG_EXPR_ERR_BAD_VARIABLE_NAME = 10;
+  SG_EXPR_ERR_BAD_ASSIGNMENT = 11;
 
 type
   Psg_expr_argument = ^sg_expr_argument;
@@ -1016,8 +1010,6 @@ begin //FI:C101
     sg_realloc := GetProcAddress(GHandle, 'sg_realloc');
     sg_free := GetProcAddress(GHandle, 'sg_free');
     sg_math_set := GetProcAddress(GHandle, 'sg_math_set');
-    sg_pow := GetProcAddress(GHandle, 'sg_pow');
-    sg_fmod := GetProcAddress(GHandle, 'sg_fmod');
     sg_strerror := GetProcAddress(GHandle, 'sg_strerror');
     sg_is_post := GetProcAddress(GHandle, 'sg_is_post');
     sg_extract_entrypoint := GetProcAddress(GHandle, 'sg_extract_entrypoint');
@@ -1217,8 +1209,6 @@ begin //FI:C101
     sg_realloc := nil;
     sg_free := nil;
     sg_math_set := nil;
-    sg_pow := nil;
-    sg_fmod := nil;
     sg_strerror := nil;
     sg_is_post := nil;
     sg_extract_entrypoint := nil;
