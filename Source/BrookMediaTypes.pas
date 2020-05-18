@@ -298,6 +298,7 @@ type
     procedure InternalLibUnloadEvent(ASender: TObject);
   protected
     procedure Loaded; override;
+    function CreateTypes(const AFileName: TFileName): TBrookMediaTypes; virtual;
     function GetHandle: Pointer; override;
     procedure DoOpen; virtual;
     procedure DoClose; virtual;
@@ -689,6 +690,17 @@ begin
   end;
 end;
 
+function TBrookMIME.CreateTypes(const AFileName: TFileName): TBrookMediaTypes;
+var
+  T: TBrookMediaTypesClass;
+begin
+  T := GetProviderClass;
+  if T.InheritsFrom(TBrookMediaTypesPath) then
+    Exit(TBrookMediaTypesPathClass(T).Create(AFileName));
+  Result := T.Create;
+  Result.DefaultType := FDefaultType;
+end;
+
 procedure TBrookMIME.CheckProvider;
 begin
   if FProvider.IsEmpty then
@@ -752,18 +764,11 @@ begin
 end;
 
 procedure TBrookMIME.DoOpen;
-var
-  T: TBrookMediaTypesClass;
 begin
   if Assigned(FTypes) then
     Exit;
   CheckProvider;
-  T := GetProviderClass;
-  if T.InheritsFrom(TBrookMediaTypesPath) then
-    FTypes := TBrookMediaTypesPathClass(T).Create(FFileName)
-  else
-    FTypes := T.Create;
-  FTypes.DefaultType := FDefaultType;
+  FTypes := CreateTypes(FFileName);
   FActive := True;
 end;
 

@@ -302,8 +302,6 @@ begin
   Assert(not Assigned(sg_realloc));
   Assert(not Assigned(sg_free));
   Assert(not Assigned(sg_math_set));
-  Assert(not Assigned(sg_pow));
-  Assert(not Assigned(sg_fmod));
   Assert(not Assigned(sg_strerror));
   Assert(not Assigned(sg_is_post));
   Assert(not Assigned(sg_extract_entrypoint));
@@ -475,8 +473,6 @@ begin
   Assert(Assigned(sg_realloc));
   Assert(Assigned(sg_free));
   Assert(Assigned(sg_math_set));
-  Assert(Assigned(sg_pow));
-  Assert(Assigned(sg_fmod));
   Assert(Assigned(sg_strerror));
   Assert(Assigned(sg_is_post));
   Assert(Assigned(sg_extract_entrypoint));
