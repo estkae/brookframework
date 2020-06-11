@@ -498,6 +498,9 @@ begin
 {$IFNDEF VER3_0}@{$ENDIF}DoSort, @M));
 end;
 
+{$IFDEF FPC}
+ {$PUSH}{$WARN 6058 OFF}
+{$ENDIF}
 procedure TBrookStringMap.Fetch(AObject: TObject; const AAllowed,
   AIgnored: array of string);
 var
@@ -515,6 +518,9 @@ begin
       SetPropValue(AObject, VProp, VPair.Value);
   end;
 end;
+{$IFDEF FPC}
+ {$POP}
+{$ENDIF}
 
 procedure TBrookStringMap.Fetch(AObject: TObject);
 begin

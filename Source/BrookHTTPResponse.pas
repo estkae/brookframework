@@ -64,7 +64,6 @@ type
     FHandle: Psg_httpres;
     FCompressed: Boolean;
     procedure SetCookies(AValue: TBrookHTTPCookies);
-    procedure InternalSendCookies; inline;
   protected
     class function DoStreamRead(Acls: Pcvoid; Aoffset: cuint64_t; Abuf: Pcchar;
       Asize: csize_t): cssize_t; cdecl; static;
@@ -187,8 +186,11 @@ begin
 end;
 
 destructor TBrookHTTPResponse.Destroy;
+var
+  C: TBrookHTTPCookie;
 begin
-  InternalSendCookies;
+  for C in FCookies do
+    FHeaders.Add('Set-Cookie', C.ToString);
   FCookies.Free;
   FHeaders.Free;
   inherited Destroy;
@@ -197,14 +199,6 @@ end;
 function TBrookHTTPResponse.GetHandle: Pointer;
 begin
   Result := FHandle;
-end;
-
-procedure TBrookHTTPResponse.InternalSendCookies;
-var
-  C: TBrookHTTPCookie;
-begin
-  for C in FCookies do
-    FHeaders.Add('Set-Cookie', C.ToString);
 end;
 
 procedure TBrookHTTPResponse.CheckAlreadySent(Aret: cint);

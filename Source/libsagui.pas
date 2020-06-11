@@ -734,7 +734,7 @@ type
     GHandle: TLibHandle;
   private
     class function InternalLoad(
-      const AName: TFileName): TLibHandle; static; inline;
+      const AName: TFileName): TLibHandle; static;
   public
     class procedure Init; static;
     class procedure Done; static;

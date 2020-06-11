@@ -110,14 +110,14 @@ type
       @param(AUnsignedValue[in] Unsigned cookie value to be signed.)
       @returns(Signed cookie value.) }
     class function Sign(const ASecret,
-      AUnsignedValue: string): string; overload; static; inline;
+      AUnsignedValue: string): string; overload; static;
     { Tries to unsign a cookie value.
       @param(ASecret[in] Secret key to unsign the cookie value.)
       @param(ASignedValue[out] Signed cookie value.)
       @param(AUnsignedValue[out] Unsigned cookie value.)
       @returns(@True if cookie value is unsigned successfully.) }
     class function TryUnsign(const ASecret, ASignedValue: string;
-      out AUnsignedValue: string): Boolean; overload; static; inline;
+      out AUnsignedValue: string): Boolean; overload; static;
     { Unsigns a cookie value.
       @param(ASecret[in] Secret key to unsign the cookie value.)
       @param(ASignedValue[in] Signed cookie value.)
@@ -233,6 +233,12 @@ begin
   FPath := '/';
 end;
 
+class function TBrookHTTPCookie.IsSigned(const ASignedValue: string): Boolean;
+begin
+  Result := (Length(ASignedValue) > 0) and CompareMem(@ASignedValue[1],
+    @BROOK_COOKIE_SIG_PREFIX[1], Length(BROOK_COOKIE_SIG_PREFIX) * SizeOf(Char));
+end;
+
 class function TBrookHTTPCookie.Sign(const ASecret,
   AUnsignedValue: string): string;
 var
@@ -295,12 +301,6 @@ class function TBrookHTTPCookie.Unsign(const ASecret,
 begin
   if not TryUnsign(ASecret, ASignedValue, Result) then
     Result := EmptyStr;
-end;
-
-class function TBrookHTTPCookie.IsSigned(const ASignedValue: string): Boolean;
-begin
-  Result := (Length(ASignedValue) > 0) and CompareMem(@ASignedValue[1],
-    @BROOK_COOKIE_SIG_PREFIX[1], Length(BROOK_COOKIE_SIG_PREFIX) * SizeOf(Char));
 end;
 
 procedure TBrookHTTPCookie.Assign(ASource: TPersistent);
