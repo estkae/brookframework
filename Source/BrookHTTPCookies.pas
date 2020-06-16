@@ -266,7 +266,7 @@ begin
     VStream.Free;
   end
 {$ELSE}
-  Result := TNetEncoding.Base64.EncodeBytesToString(
+  Result := TBase64Encoding.Create(0, '').EncodeBytesToString(
     THashSHA1.GetHMACAsBytes(AUnsignedValue, ASecret))
 {$ENDIF};
   VPos := Pos('=', Result);
