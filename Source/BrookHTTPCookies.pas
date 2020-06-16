@@ -246,6 +246,8 @@ var
   VEncoder: TBase64EncodingStream;
   VStream: TStringStream;
   VDigest: THMACSHA1Digest;
+{$ELSE}
+  VEncoder: TBase64Encoding;
 {$ENDIF}
   VPos: Integer;
 begin
@@ -259,15 +261,20 @@ begin
       VDigest := HMACSHA1Digest(ASecret, AUnsignedValue);
       VEncoder.Write(VDigest[0], Length(VDigest));
     finally
-      VEncoder.Free;
+      VEncoder.Destroy;
     end;
     Result := VStream.DataString;
   finally
-    VStream.Free;
+    VStream.Destroy;
   end
 {$ELSE}
-  Result := TBase64Encoding.Create(0, '').EncodeBytesToString(
-    THashSHA1.GetHMACAsBytes(AUnsignedValue, ASecret))
+  VEncoder := TBase64Encoding.Create(0, '');
+  try
+    Result := VEncoder.EncodeBytesToString(
+      THashSHA1.GetHMACAsBytes(AUnsignedValue, ASecret))
+  finally
+    VEncoder.Destroy;
+  end;
 {$ENDIF};
   VPos := Pos('=', Result);
   if VPos > 0 then
